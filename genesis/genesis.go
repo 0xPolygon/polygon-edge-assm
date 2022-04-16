@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 var genesisPath = "/tmp/genesis.json"
@@ -17,7 +18,7 @@ func GenerateAndStore(nodes *types.Nodes) error {
 	// add validators and keys
 	for _, v := range nodes.Node {
 		genCmd = append(genCmd, "--ibft-validator="+v.ValidatorKey)
-		genCmd = append(genCmd, fmt.Sprintf("--bootnode=/ip4/%s/tcp/1478/p2p/%s", v.IP, v.NetworkID))
+		genCmd = append(genCmd, fmt.Sprintf("--bootnode=/ip4/%s/tcp/1478/p2p/%s", strings.TrimSpace(v.IP), strings.TrimSpace(v.NetworkID)))
 	}
 
 	genCmd = append(genCmd, "--premine=0x228466F2C715CbEC05dEAbfAc040ce3619d7CF0B:1000000000000000000000")
