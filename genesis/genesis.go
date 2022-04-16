@@ -8,9 +8,11 @@ import (
 	"os/exec"
 )
 
+var genesisPath = "/tmp/genesis.json"
+
 func GenerateAndStore(nodes *types.Nodes) error {
 	// first part of genesis command
-	genCmd := []string{"genesis", "--consensus", "ibft", "--dir", "/tmp"}
+	genCmd := []string{"genesis", "--consensus", "ibft", "--dir", genesisPath}
 	
 	// add validators and keys
 	for _, v := range nodes.Node {
@@ -21,7 +23,7 @@ func GenerateAndStore(nodes *types.Nodes) error {
 	genCmd = append(genCmd, "--premine=0x228466F2C715CbEC05dEAbfAc040ce3619d7CF0B:1000000000000000000000")
 
 	// remove temp file if exists
-	os.Remove("/tmp/genesis.json")
+	os.Remove(genesisPath)
 
 	cmd := exec.Command("polygon-edge",genCmd...)
 
@@ -32,12 +34,12 @@ func GenerateAndStore(nodes *types.Nodes) error {
 
 	cmd.Stdout = logWriter
 	cmd.Stderr = logWriter
-	
+
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to generate genesis.json: %w", err)
 	}
 
-	if err := aws.StoreGenesis("/tmp/genesis.json"); err != nil {
+	if err := aws.StoreGenesis(genesisPath); err != nil {
 		return fmt.Errorf("failed to store genesis.json: %w",err)
 	}
 
