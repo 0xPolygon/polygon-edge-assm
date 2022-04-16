@@ -23,12 +23,19 @@ func GenerateAndStore(nodes *types.Nodes) error {
 	// remove temp file if exists
 	os.Remove("/tmp/genesis.json")
 
-	_, err := exec.Command("polygon-edge",genCmd...).Output()
+	cmd := exec.Command("polygon-edge",genCmd...)
+
+	logWriter, err := os.Create("/var/log/edge-controler.log")
 	if err != nil {
-		return fmt.Errorf("failed to generate genesis.json: %w", err)
+		return fmt.Errorf("could not setup log file writer, %w",err)
 	}
 
-	fmt.Println(genCmd)
+	cmd.Stdout = logWriter
+	cmd.Stderr = logWriter
+	
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to generate genesis.json: %w", err)
+	}
 
 	if err := aws.StoreGenesis("/tmp/genesis.json"); err != nil {
 		return fmt.Errorf("failed to store genesis.json: %w",err)
