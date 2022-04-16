@@ -35,7 +35,7 @@ func GenerateAndStore(nodes *types.Nodes) error {
 	cmd.Stdout = logWriter
 	cmd.Stderr = logWriter
 
-	if err := cmd.Start(); err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to generate genesis.json: %w", err)
 	}
 
