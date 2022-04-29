@@ -5,6 +5,7 @@ import (
 	"Trapesys/polygon-edge-assm/genesis"
 	"Trapesys/polygon-edge-assm/types"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -23,6 +24,11 @@ var nodes = types.Nodes{
 }
 
 func main() {
+
+	flag.StringVar(&aws.Region,"aws-region","us-west-2","set AWS region")
+	flag.StringVar(&aws.BucketName,"s3-name","polygon-edge-shared","set S3 bucket name")
+	flag.Parse()
+
 	r := mux.NewRouter()
 	// all nodes done, start generating genesis.json /init
 	r.HandleFunc("/init",handleInit).Methods("GET")
