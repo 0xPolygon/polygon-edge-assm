@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -23,12 +24,25 @@ var nodes = types.Nodes{
 	Node: make(map[string]types.NodeInfo),
 }
 
+var (
+	logger log.Logger
+	logFileFlag string
+)
+
 func main() {
 
 	flag.StringVar(&aws.Region,"aws-region","us-west-2","set AWS region")
 	flag.StringVar(&aws.BucketName,"s3-name","polygon-edge-shared","set S3 bucket name")
+	flag.StringVar(&logFileFlag, "log-file","/var/log/edge-assm.log","log file location")
 	flag.Parse()
 
+	logFile, err := os.Create(logFileFlag)
+	if err != nil {
+		log.Println("could not set log file location")
+	} else {
+		logger = *log.New(logFile,"edge-assm",log.Ldate|log.Ltime)
+	}
+	
 	r := mux.NewRouter()
 	// all nodes done, start generating genesis.json /init
 	r.HandleFunc("/init",handleInit).Methods("GET")
@@ -48,7 +62,8 @@ func main() {
 func handleTotalNodes(w http.ResponseWriter, r *http.Request) {
  	total, err := strconv.Atoi(r.URL.Query()["total"][0])
 	if err != nil {
-		log.Fatalln("could not convert string to int, %w", err)
+		logger.Println("could not convert string to int, %w", err)
+		return
 	}
 	nodes.Total = total
 	json.NewEncoder(w).Encode(types.Responce{Success: true, Message: "total node number set!"})
@@ -68,7 +83,7 @@ func handleInit(w http.ResponseWriter, r *http.Request) {
 
 	// if there are less finished nodes than registered nodes skip this function
 	if !(len(nodes.Finished) == nodes.Total) {
-		json.NewEncoder(w).Encode(types.Responce{Success: false,Message: "the number of finished nodes and total number of nodes dosen't match"})
+		json.NewEncoder(w).Encode(types.Responce{Success: false,Message: "the number of finished nodes and total number of nodes doesn't match"})
 		return
 	}
 
@@ -77,19 +92,22 @@ func handleInit(w http.ResponseWriter, r *http.Request) {
 		// get network-key from ASSM
 		id, err := aws.GetSecret(fmt.Sprintf("/polygon-edge/nodes/%s/network-key",name))
 		if err != nil {
-			log.Fatalln(name + err.Error())
+			logger.Println("could not fetch network key secret: "+ name + err.Error())
+			return
 		}
 
 		// get validator-key from ASSM
 		key, err := aws.GetSecret(fmt.Sprintf("/polygon-edge/nodes/%s/validator-key",name))
 		if err != nil {
-			log.Fatalln(name + err.Error())
+			logger.Println("coult not fetch validator key secret: ", name + err.Error())
+			return
 		}
 
 		// get new node info based on private keys 
 		nodeInfo, err := types.NewNodeInfo(id, key, nodes.NodeIPs[name])
 		if err != nil {
-			log.Fatalln("could not set validator and network params: %w", err)
+			logger.Println("could not set validator and network params: %w", err)
+			return
 		}
 
 		// set node info
@@ -97,7 +115,8 @@ func handleInit(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	if err := genesis.GenerateAndStore(&nodes); err != nil {
-		log.Fatalln("genesis genrator failed: ", err)
+		log.Println("genesis genrator failed: ", err)
+		return
 	}
 
 	json.NewEncoder(w).Encode(types.Responce{Success: true, Message: "genesis.json file generated and stored to S3 bucket"})
