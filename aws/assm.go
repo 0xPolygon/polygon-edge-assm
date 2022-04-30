@@ -8,6 +8,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
+var (
+	Region string
+	BucketName string
+)
+
 func GetSecret(secretName string) (string, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {

@@ -32,5 +32,14 @@ Flags that can be set for this program are:
 * `aws-region` - sets the AWS region for the SSM. Default: `us-west-2`
 * `s3-name` - sets S3 bucket name in which to place the `genesis.json` file. Default: `polygon-edge-shared`
 * `log-file` - sets the log file output. Default: `/var/log/edge-assm.log`
+* `genesis-log-file` - sets log file output for genesis module. Default: `/var/log/edge-assm-genesis.log`
+* `chain-name` - sets chain name. Default: pulled from `polygon-edge genesis` command
+* `pos` - sets PoS consensus. Default: false
+* `epoch-size` - sets epoch size. Default: pulled from `polygon-edge genesis` command
+* `premine` - premine accounts. For multiple accounts, separate them with `,`. Format: `<account>:<ammount>`
+* `chain-id` - sets chain id. Default: pulled from `polygon-edge genesis` command
+* `block-gas-limit` - sets block gas limit. Default: pulled from `polygon-edge genesis` command
+* `max-validator-count` - sets maximum validator count, only for PoS consensus. Default: pulled from `polygon-edge genesis` command
+* `min-validator-count` - sets minimum validator count, only for PoS consensus. Default: pulled from `polygon-edge genesis` command
 
 
