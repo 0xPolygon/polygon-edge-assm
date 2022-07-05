@@ -4,7 +4,7 @@ import (
 	"Trapesys/polygon-edge-assm/aws"
 	"Trapesys/polygon-edge-assm/types"
 	"fmt"
-	"os"
+	"log"
 	"os/exec"
 	"strings"
 )
@@ -12,12 +12,12 @@ import (
 var genesisPath = "/tmp/genesis.json"
 
 type Config struct {
-	ChainName string
-	PoS bool
-	EpochSize string
-	Premine string
-	ChainID string
-	BlockGasLimit string
+	ChainName         string
+	PoS               bool
+	EpochSize         string
+	Premine           string
+	ChainID           string
+	BlockGasLimit     string
 	MaxValidatorCount string
 	MinValidatorCount string
 
@@ -26,7 +26,7 @@ type Config struct {
 
 var GenConfig = &Config{}
 
-func GenerateAndStore(nodes *types.Nodes) error {
+func GenerateAndStore(nodes *types.Nodes, logger *log.Logger) error {
 	// first part of genesis command
 	genCmd := []string{"genesis", "--consensus", "ibft", "--dir", genesisPath}
 
@@ -65,7 +65,6 @@ func GenerateAndStore(nodes *types.Nodes) error {
 		genCmd = append(genCmd, "--min-validator-count", GenConfig.MinValidatorCount)
 	}
 
-	
 	// add validators and keys
 	for _, v := range nodes.Node {
 		genCmd = append(genCmd, "--ibft-validator="+v.ValidatorKey)
@@ -73,29 +72,21 @@ func GenerateAndStore(nodes *types.Nodes) error {
 	}
 
 	// Premine
-	for _,premine := range strings.Split(GenConfig.Premine, ",") {
-		genCmd = append(genCmd, fmt.Sprintf("--premine=%s",premine))
+	for _, premine := range strings.Split(GenConfig.Premine, ",") {
+		genCmd = append(genCmd, fmt.Sprintf("--premine=%s", premine))
 	}
 
-	// remove temp file if exists
-	os.Remove(genesisPath)
+	cmd := exec.Command("polygon-edge", genCmd...)
 
-	cmd := exec.Command("polygon-edge",genCmd...)
-
-	logWriter, err := os.Create(GenConfig.LogFile)
-	if err != nil {
-		return fmt.Errorf("could not setup log file writer, %w",err)
-	}
-
-	cmd.Stdout = logWriter
-	cmd.Stderr = logWriter
+	cmd.Stdout = logger.Writer()
+	cmd.Stderr = logger.Writer()
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to generate genesis.json: %w", err)
 	}
 
 	if err := aws.StoreGenesis(genesisPath); err != nil {
-		return fmt.Errorf("failed to store genesis.json: %w",err)
+		return fmt.Errorf("failed to store genesis.json: %w", err)
 	}
 
 	return nil
