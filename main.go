@@ -25,17 +25,19 @@ var nodes = types.Nodes{
 var (
 	logger      log.Logger
 	logFileFlag string
+	ssmId       string
 )
 
 func main() {
 
 	flag.StringVar(&aws.Region, "aws-region", "us-west-2", "set AWS region")
 	flag.StringVar(&aws.BucketName, "s3-name", "polygon-edge-shared", "set S3 bucket name")
+	flag.StringVar(&ssmId, "ssm-id", "polygon-edge-validators", "set AWS SSM parameter id")
 	flag.StringVar(&logFileFlag, "log-file", "/var/log/edge-assm.log", "log file location")
 	flag.StringVar(&genesis.GenConfig.ChainName, "chain-name", "", "the name of the chain")
 	flag.BoolVar(&genesis.GenConfig.PoS, "pos", false, "enable PoS IBFT consensus")
 	flag.StringVar(&genesis.GenConfig.EpochSize, "epoch-size", "", "set epoch size")
-	flag.StringVar(&genesis.GenConfig.Premine, "premine", "0x228466F2C715CbEC05dEAbfAc040ce3619d7CF0B:1000000000000000000000", "premine accounts with funds, for multiple accounts separate with ,")
+	flag.StringVar(&genesis.GenConfig.Premine, "premine", "0x228466F2C715CbEC05dEAbfAc040ce3619d7CF0B:0x3B9ACA00", "premine accounts with funds, for multiple accounts separate with ,")
 	flag.StringVar(&genesis.GenConfig.ChainID, "chain-id", "", "set chain ID")
 	flag.StringVar(&genesis.GenConfig.BlockGasLimit, "block-gas-limit", "", "set block gas limit")
 	flag.StringVar(&genesis.GenConfig.MaxValidatorCount, "max-validator-count", "", "set max validator count for PoS consensus")
@@ -113,16 +115,16 @@ func handleInit(w http.ResponseWriter, _ *http.Request) {
 	// get the data only if all nodes have finished
 	for _, name := range nodes.Finished {
 		// get network-key from ASSM
-		id, err := aws.GetSecret(fmt.Sprintf("/polygon-edge/nodes/%s/network-key", name))
+		id, err := aws.GetSecret(fmt.Sprintf("/%s/%s/network-key", ssmId, name))
 		if err != nil {
 			logger.Println("could not fetch network key secret: " + name + err.Error())
 			return
 		}
 
 		// get validator-key from ASSM
-		key, err := aws.GetSecret(fmt.Sprintf("/polygon-edge/nodes/%s/validator-key", name))
+		key, err := aws.GetSecret(fmt.Sprintf("/%s/%s/validator-key", ssmId, name))
 		if err != nil {
-			logger.Println("coult not fetch validator key secret: ", name+err.Error())
+			logger.Println("could not fetch validator key secret: ", name+err.Error())
 			return
 		}
 
