@@ -3,8 +3,8 @@ module Trapesys/polygon-edge-assm
 go 1.17
 
 require (
+	github.com/aws/aws-lambda-go v1.13.3
 	github.com/aws/aws-sdk-go-v2 v1.16.2
-	github.com/gorilla/mux v1.8.0
 )
 
 require (
@@ -47,6 +47,7 @@ require (
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
+	github.com/stretchr/testify v1.7.2 // indirect
 	github.com/umbracle/fastrlp v0.0.0-20211229195328-c1416904ae17 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect

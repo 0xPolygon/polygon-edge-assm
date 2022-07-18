@@ -1,45 +1,67 @@
-# Polygon Edge secrets manager initializer
+# AWS Lambda - Polygon Edge chain initializer
 
-On running automated Polygon Edge deployments this API helps with creation of `genesis.json` file that the Polygon Edge server needs to run a chain.
-When the private keys are saved in some secrets manager solution ( right now only AWS SSM is supported ) this API fetches these keys and converts them to network_id and validator address.
+On running automated Polygon Edge deployments, this Lambda function helps with creation of `genesis.json` file 
+that Polygon Edge server needs to run a chain.   
+When the private keys are saved in AWS SSM this Lambda function fetches these keys 
+and converts them to valid network_id and validator address.
 
 ### Prequestites
-* Dedicated node that will clone this repo, compile binary and run it.
-* This node needs to have access to both ASSM and S3 that will hold `genesis.json` file ( instance IAM polices ).  
-* All polygon edge nodes need to be able to access this node at TCP 9001 by default ( security groups ).
+* EC2 instances must have permission to run AWS Lambda functions   
+* EC2 instances must be able to read from S3 bucket
+* EC2 instances have a service that starts the chain once `genesis.json` is found in S3
 
 ## How to use
-The genesis creation process involves several stages, consisting of hitting the API and delivering the required data to it.  
+Once basic init stage is complete and keys are stored in AWS SSM, a node will run this Lambda function
+and send the data about the chain and itself, in json format.
 
-### Total number of nodes API
-If there are 4 validator nodes in total: `/total-nodes?total=4`  
-Now the API knows that there are 4 nodes that we would like to initialize as validator nodes.
+When all nodes send their information, Lambda will create `genesis.json` file and store it in the S3 bucket.
 
-### Initialization done
-Each validator node needs to send the following api when it finishes the `secrets init` stage: ` /node-done?name=node1&ip=10.150.1.4`   
-Node sends its name, which coresponds to the name in secrets manager, and its IP address.  
-Once the program receives enough calls to this API ( for 4 nodes, the program expects 4 calls to this API ), it moves to the next stage.   
+All nodes should have a service running in the background that check if `genesis.json` exists in S3,
+and if it does it will be downloaded and used to start the chain automatically.
 
-### Fetch keys and generate genesis.json file
-Once all validator nodes reported that they have successfully completed the `secrets init` stage, this program fetches validator secrets from the secrets store, generates `genesis.json` file and puts it in the S3 bucket.   
-The API call that triggers this action is: `/init`   
+Deploying GO on AWS Lambda [doc](https://docs.aws.amazon.com/lambda/latest/dg/golang-package.html)
 
-Each node can be configured to send all 3 API calls.   
-Once the last node hits `/init` api, the `genesis.json` file generation will start.
+### JSON file format
+```json
+{
+  "config": {
+    "aws_region": "<AWS_REGION>", 
+    "s3_bucket_name": "<S3_BUCKET_NAME>", 
+    "s3_key_name": "<S3_CONFIG_KEY>",
+	  
+    "premine": "<PREMINE_ACCOUNT>:<PREMINE_AMOUNT>",
+    "chain_name": "<CHAIN_NAME>",
+    "chain_id": "<CHAIN_ID>",
+    "pos": "<POS>",
+    "epoch_size": "<EPOCH_SIZE>",
+    "block_gas_limit": "<BLOCK_GAS_LIMIT>",
+    "max_validator_count": "<MAX_VALIDATOR_COUNT>",
+    "min_validator_count": "<MIN_VALIDATOR_COUNT>",
+    "consensus": "<CONSENSUS>"
+    
+  },
+  "nodes": {
+	"total": <TOTAL_NUMBER_OF_NODES>,
+	"node_info": {
+	  "ssm_param_id": "<SSM_PREFIX>",
+      "node_name": "<NODE_NAME>",
+      "ip": "<NODE_IP>"
+	}
+  }
+}
+```
 
-### Configuration options
-Flags that can be set for this program are:   
-* `aws-region` - sets the AWS region for the SSM. Default: `us-west-2`
-* `s3-name` - sets S3 bucket name in which to place the `genesis.json` file. Default: `polygon-edge-shared`
-* `log-file` - sets the log file output. Default: `/var/log/edge-assm.log`
-* `genesis-log-file` - sets log file output for genesis module. Default: `/var/log/edge-assm-genesis.log`
-* `chain-name` - sets chain name. Default: pulled from `polygon-edge genesis` command
-* `pos` - sets PoS consensus. Default: false
-* `epoch-size` - sets epoch size. Default: pulled from `polygon-edge genesis` command
-* `premine` - premine accounts. For multiple accounts, separate them with `,`. Format: `<account>:<ammount>`
-* `chain-id` - sets chain id. Default: pulled from `polygon-edge genesis` command
-* `block-gas-limit` - sets block gas limit. Default: pulled from `polygon-edge genesis` command
-* `max-validator-count` - sets maximum validator count, only for PoS consensus. Default: pulled from `polygon-edge genesis` command
-* `min-validator-count` - sets minimum validator count, only for PoS consensus. Default: pulled from `polygon-edge genesis` command
+### General configuration
+* `AWS_REGION` - AWS region for your resources
+* `PREMINE_ACCOUNT:PREMINE_AMOUNT` - account and the amount that will receive defined amount of native currency 
+* `S3_BUCKET_NAME` - the name of S3 bucket that will hold configuration and `genesis.json` file
+* `S3_CONFIG_KEY` - the name of the file in S3 bucket that will hold configuration data
+* `TOTAL_NUMBER_OF_NODES` - total number of validator nodes (int)
+* `SSM_PREFIX` - AWS SSM Parameter Store prefix used to store secrets
+* `NODE_NAME` - the name of node that will be used to differentiate stored secrets
+* `NODE_IP` - ip address of the node
+
+### Chain configuration options
+All chain configuration options are well explained in the [docs](https://docs.polygon.technology/docs/edge/get-started/cli-commands#genesis-flags)  
 
 
