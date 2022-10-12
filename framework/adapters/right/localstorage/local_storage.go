@@ -15,6 +15,9 @@ import (
 	"strings"
 )
 
+// pin the relese to v0.5.1 - before BLS breaking change
+const releaseURL string = "https://api.github.com/repos/0xPolygon/polygon-edge/releases/77894422"
+
 type Adapter struct {
 }
 
@@ -35,7 +38,7 @@ func (a Adapter) GetEdge() error {
 	edge := &PolygonEdgeRelase{}
 
 	// get the info about releases
-	resp, err := http.Get("https://api.github.com/repos/0xPolygon/polygon-edge/releases/latest")
+	resp, err := http.Get(releaseURL)
 	if err != nil {
 		return fmt.Errorf("could not get new polygon-edge release err=%w", err)
 	}
@@ -45,14 +48,14 @@ func (a Adapter) GetEdge() error {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf(
-			"could not read response body of https://api.github.com/repos/0xPolygon/polygon-edge/releases/latest err=%w",
+			"could not read response body of "+releaseURL+" err=%w",
 			err)
 	}
 
 	// unmarshal response
 	if err := json.Unmarshal(body, edge); err != nil {
 		return fmt.Errorf("could not unmarshal response body of "+
-			"https://api.github.com/repos/0xPolygon/polygon-edge/releases/latest err=%w", err)
+			releaseURL+"err=%w", err)
 	}
 
 	// find release for our platform - linux_amd64
